@@ -1,75 +1,106 @@
 #include <iostream>
+#include <fstream>
 #include <string>
 #include <exception>
+
 using namespace std;
 
-class FileNotFoundException : public exception {
-public :
-    const char* what() const noexcept override {
+class FileNotFoundException : public exception
+{
+public:
+    const char *what() const noexcept override
+    {
         return "ERROR : File not found.";
     }
 };
 
-class FilePermissionException : public exception {
-public :
-    const char* what() const noexcept override {
+class FilePermissionException : public exception
+{
+public:
+    const char *what() const noexcept override
+    {
         return "ERROR : Permission Denied. Cannot access file.";
     }
 };
 
-class FileHandler {
-private :
-    bool isOpen = false;
-    string opennedFileName = " ";
-public :
-void openFile(const string& fileName) {
-    cout << "Openning '" << fileName << "'." << endl;
-    if (fileName == "notFound.txt") throw FileNotFoundException();
-    if (fileName == "notAllowed.txt") throw FilePermissionException();
-    isOpen = true;
-    opennedFileName = fileName;
-    cout << "File '" << opennedFileName << "' Openned!" << endl;
-}
-void readFromFile(const string& fileName) {
-    if (!isOpen) throw FilePermissionException();
-    cout << "Read from file '" << opennedFileName << "'!" << endl;
-}
-void writeToFile(const string& text) {
-        if (!isOpen) throw FilePermissionException();
-        cout << "Wrote data to file '" << opennedFileName << "'!" << endl;
-    }
-void closeFile() {
-    if (isOpen) {
-        isOpen = false;
-        cout << "File '" << opennedFileName << "' closed!" << endl;
+class FileHandler
+{
+private:
+    fstream file;
+    string openedFileName = " ";
+
+public:
+    void openFile(const string &fileName)
+    {
+        cout << "Opening '" << fileName << "'." << endl;
+        file.open(fileName, ios::in | ios::out);
+        if (!file.is_open())
+        {
+            file.clear();
+            file.open(fileName, ios::in | ios::out | ios::trunc);
         }
+        if (!file.is_open())
+        {
+            throw FilePermissionException();
+        }
+        openedFileName = fileName;
+        cout << "File '" << openedFileName << "' Opened!" << endl;
+    }
+
+    void writeToFile(const string &text)
+    {
+        if (!file.is_open())
+            throw FilePermissionException();
+        file << text << endl;
+        cout << "Wrote data to file." << endl;
+    }
+
+    void readFromFile()
+    {
+        if (!file.is_open())
+            throw FilePermissionException();
+        file.clear();
+        file.seekg(0);
+        string line;
+        cout << "Reading from file '" << openedFileName << "'." << endl;
+        while (getline(file, line))
+        {
+            cout << line << endl;
+        }
+    }
+
+    void closeFile()
+    {
+        if (file.is_open())
+        {
+            file.close();
+            cout << "File '" << openedFileName << "' closed!" << endl;
+        }
+    }
+
+    ~FileHandler()
+    {
+        closeFile();
     }
 };
 
-int main() {
-    FileHandler myFiles;
-    try {
-        cout << "FILE NOT FOUND CASE : " << endl;
-        myFiles.openFile("notFound.txt");
-    }
-    catch(const exception& e) {
-        cout << e.what() << endl << endl;
-    }
-    try {
-        cout << "PERMISSION NOT GRANTED CASE : " << endl;
-        myFiles.openFile("notAllowed.txt");
-    }
-    catch(const exception& e) {
-        cout << e.what() << endl << endl;
-    }
-    try {
-        cout << "VALID FILE CASE : " << endl;
-        myFiles.openFile("LAB8.cpp");
-        myFiles.writeToFile("ERP : 33439");
-        myFiles.closeFile();
-    }
-    catch(const exception& e) {
-        cout << e.what() << endl << endl;
+int main()
+{
+    FileHandler fileHandler;
+    string filename = "testFile.txt";
 
+    try
+    {
+        fileHandler.openFile(filename);
+        fileHandler.writeToFile("Testing file handling.");
+        fileHandler.writeToFile("Did it work?.");
+        fileHandler.readFromFile();
+        fileHandler.closeFile();
     }
+    catch (const exception &e)
+    {
+        cout << e.what() << endl;
+    }
+
+    return 0;
 }
